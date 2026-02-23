@@ -419,7 +419,7 @@ export default function App() {
       </div>
 
       <footer className="footer">
-        <span>PhotonIQ</span> — Solar Power Optimization • Hackathon 2026
+        <span>PhotonIQ</span> - Solar Power Optimization • Hackathon 2026
       </footer>
     </div>
   );

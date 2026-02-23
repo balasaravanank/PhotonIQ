@@ -21,15 +21,15 @@
  */
 
 require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
+const express = require('express');
+const cors = require('cors');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
-const admin      = require('firebase-admin');
-const axios      = require('axios');
-const cron       = require('node-cron');
+const admin = require('firebase-admin');
+const axios = require('axios');
+const cron = require('node-cron');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
@@ -62,7 +62,7 @@ let predictionCache = { predicted_power: 0, confidence: 0, forecast: [] };
 function initSerial() {
   // HOW TO FIND PORT: Windows=Device Manager>Ports, Linux=ls /dev/tty*, Mac=ls /dev/cu.*
   const SERIAL_PORT = process.env.SERIAL_PORT || 'COM3';
-  const BAUD_RATE   = parseInt(process.env.BAUD_RATE) || 9600;
+  const BAUD_RATE = parseInt(process.env.BAUD_RATE) || 9600;
 
   console.log(`USB Serial: Arduino on ${SERIAL_PORT} at ${BAUD_RATE} baud`);
   console.log('  IMPORTANT: Close Arduino Serial Monitor first!');
@@ -114,20 +114,20 @@ function initSerial() {
 // ─────────────────────────────────────────────────────────────
 async function fetchWeather() {
   try {
-    const { data } = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
-      params: {
-        q: process.env.WEATHER_CITY || 'Chennai,IN',
-        appid: process.env.OPENWEATHER_API_KEY,
-        units: 'metric'
-      }
+    const city = process.env.WEATHER_CITY || 'Chennai';
+    const key = process.env.WEATHER_API_KEY;
+
+    const { data } = await axios.get('http://api.weatherapi.com/v1/current.json', {
+      params: { key, q: city }
     });
 
     weatherCache = {
-      temp: data.main.temp,
-      humidity: data.main.humidity,
-      clouds: data.clouds.all,         // 0-100%
-      description: data.weather[0].description,
-      windSpeed: data.wind.speed,
+      temp: data.current.temp_c,
+      humidity: data.current.humidity,
+      clouds: data.current.cloud,          // 0-100%
+      description: data.current.condition.text,
+      windSpeed: data.current.wind_kph,
+      uv: data.current.uv,
       timestamp: Date.now()
     };
 
@@ -135,7 +135,7 @@ async function fetchWeather() {
     console.log(`🌤 Weather updated: ${weatherCache.temp}°C, ${weatherCache.clouds}% clouds`);
 
   } catch (e) {
-    console.error('Weather fetch failed:', e.message);
+    console.error('Weather fetch failed:', e.response?.data?.error?.message || e.message);
   }
 }
 
@@ -154,15 +154,15 @@ function runPrediction() {
     0.1, 0.05, 0, 0, 0, 0              // 6-11 PM
   ];
 
-  const cloudFactor  = 1 - ((weatherCache.clouds || 0) / 100) * 0.7;
-  const basePower    = latestReading.power || 0;
-  const lightPct     = (latestReading.light || 0) / 100;
+  const cloudFactor = 1 - ((weatherCache.clouds || 0) / 100) * 0.7;
+  const basePower = latestReading.power || 0;
+  const lightPct = (latestReading.light || 0) / 100;
 
   // Generate 6-hour forecast
   const forecast = [];
   for (let i = 1; i <= 6; i++) {
     const futureHour = (hour + i) % 24;
-    const predicted  = basePower * hourlyFactor[futureHour] * cloudFactor * 1.1; // 10% boost from tracking
+    const predicted = basePower * hourlyFactor[futureHour] * cloudFactor * 1.1; // 10% boost from tracking
     forecast.push({
       hour: futureHour,
       label: `${futureHour}:00`,
