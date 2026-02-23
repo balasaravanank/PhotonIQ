@@ -51,8 +51,8 @@
 #define SERVO_STEP     1    // Degrees to move per adjustment
 #define SERVO_H_MIN    0
 #define SERVO_H_MAX    180
-#define SERVO_V_MIN    30   // Don't tilt too low
-#define SERVO_V_MAX    150
+#define SERVO_V_MIN    60   // Conservative — panel stays safely upright
+#define SERVO_V_MAX    120
 
 // ── Timing ───────────────────────────────────────────────────
 #define TRACK_INTERVAL    500    // ms between tracking checks
