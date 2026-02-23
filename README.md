@@ -1,4 +1,4 @@
-# PhotonIQ — Smart Solar Power Optimization System
+# PhotonIQ - Smart Solar Power Optimization System
 
 > An IoT-powered solar tracking system that maximizes energy output using real-time light sensing, servo-driven panel alignment, and a live analytics dashboard.
 
@@ -103,7 +103,7 @@ node test-simulator.js     # sends simulated sensor data to Firebase
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 | Endpoint              | Description                  |
 |-----------------------|------------------------------|
@@ -116,7 +116,7 @@ node test-simulator.js     # sends simulated sensor data to Firebase
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
 1. **Light Sensing** — Two LDRs detect light intensity on left and right sides of the panel
 2. **Auto-Tracking** — Servo motor rotates the panel toward the stronger light source
