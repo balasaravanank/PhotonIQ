@@ -1,0 +1,318 @@
+/* App.css - Solar Optimizer Dashboard Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #F1F8E9;
+  color: #1C1C1C;
+}
+
+/* ── Loading ─────────────────────────────────── */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+  color: #2E7D32;
+}
+
+.loading p { font-size: 18px; font-weight: 600; }
+.loading small { color: #9E9E9E; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin { animation: spin 2s linear infinite; }
+
+/* ── Header ──────────────────────────────────── */
+.header {
+  background: #1B5E20;
+  color: white;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.status-dot.online  { background: #69F0AE; box-shadow: 0 0 6px #69F0AE; }
+.status-dot.offline { background: #EF5350; }
+
+.last-update { color: #A5D6A7; margin-left: 6px; }
+
+/* ── Dashboard ───────────────────────────────── */
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Alert Banner ────────────────────────────── */
+.alert-banner {
+  background: #FFF3E0;
+  border: 2px solid #FF9800;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #E65100;
+  font-size: 14px;
+}
+
+/* ── Stat Cards ──────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover { transform: translateY(-2px); }
+
+.stat-icon { margin-top: 2px; flex-shrink: 0; }
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9E9E9E;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1C1C1C;
+  line-height: 1;
+}
+
+.stat-unit {
+  font-size: 14px;
+  font-weight: 400;
+  color: #9E9E9E;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: #BDBDBD;
+  margin-top: 4px;
+}
+
+/* ── Section ─────────────────────────────────── */
+.section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.section h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2E7D32;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ── Angle Gauges ────────────────────────────── */
+.angle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.angle-card {
+  background: #F9FBF9;
+  border: 1px solid #E8F5E9;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.angle-label {
+  font-size: 12px;
+  color: #9E9E9E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.angle-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #2E7D32;
+  margin-bottom: 10px;
+}
+
+.angle-bar-bg {
+  height: 8px;
+  background: #E8F5E9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.angle-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #43A047, #F9A825);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.angle-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #BDBDBD;
+  margin-top: 4px;
+}
+
+/* ── Bottom Grid ─────────────────────────────── */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 24px;
+}
+
+/* ── Prediction ──────────────────────────────── */
+.prediction-meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #616161;
+}
+
+.prediction-meta strong { color: #1B5E20; }
+
+/* ── Weather ─────────────────────────────────── */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.weather-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #F9FBF9;
+  border: 1px solid #E8F5E9;
+  border-radius: 8px;
+  padding: 12px 8px;
+  gap: 4px;
+}
+
+.w-label {
+  font-size: 11px;
+  color: #9E9E9E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.w-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1C1C1C;
+}
+
+.weather-desc {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 14px;
+  color: #616161;
+  text-transform: capitalize;
+  padding: 6px;
+}
+
+.solar-impact {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #616161;
+  background: #E8F5E9;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.solar-impact strong { color: #2E7D32; }
+
+/* ── No Data ─────────────────────────────────── */
+.no-data {
+  color: #BDBDBD;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+/* ── Footer ──────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: #BDBDBD;
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .bottom-grid   { grid-template-columns: 1fr; }
+  .angle-grid    { grid-template-columns: 1fr; }
+  .stats-grid    { grid-template-columns: repeat(2, 1fr); }
+  .stat-value    { font-size: 22px; }
+  .header-left h1 { font-size: 16px; }
+}

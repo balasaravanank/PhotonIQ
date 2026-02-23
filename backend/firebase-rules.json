@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "solarData": {
+      "live": {
+        ".read": true,
+        ".write": true
+      },
+      "history": {
+        ".read": true,
+        ".write": true,
+        ".indexOn": ["timestamp"]
+      },
+      "weather": {
+        ".read": true,
+        ".write": true
+      },
+      "prediction": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
