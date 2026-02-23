@@ -78,17 +78,17 @@ function CustomTooltip({ active, payload, label, unit = 'W', dataLabel = 'Power'
   if (!active || !payload || !payload.length) return null;
   return (
     <div style={{
-      background: 'rgba(15, 22, 41, 0.95)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: 'rgba(255, 255, 255, 0.95)',
+      border: '1px solid rgba(0,0,0,0.08)',
       borderRadius: 10,
       padding: '10px 14px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
       fontSize: 13,
     }}>
-      <div style={{ color: '#8892b0', fontSize: 11, marginBottom: 4 }}>{label}</div>
-      <div style={{ color: '#f0f2f8', fontWeight: 700 }}>
+      <div style={{ color: '#9ba3be', fontSize: 11, marginBottom: 4 }}>{label}</div>
+      <div style={{ color: '#1a1d2e', fontWeight: 700 }}>
         {payload[0].value} {unit}
-        <span style={{ color: '#8892b0', fontWeight: 400, marginLeft: 6 }}>{dataLabel}</span>
+        <span style={{ color: '#5a6178', fontWeight: 400, marginLeft: 6 }}>{dataLabel}</span>
       </div>
     </div>
   );
@@ -274,17 +274,17 @@ export default function App() {
                     <stop offset="95%" stopColor="#4caf50" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                 <XAxis
                   dataKey="time"
-                  tick={{ fontSize: 11, fill: '#4a5578' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                  tick={{ fontSize: 11, fill: '#9ba3be' }}
+                  axisLine={{ stroke: 'rgba(0,0,0,0.08)' }}
                   tickLine={false}
                   interval="preserveStartEnd"
                 />
                 <YAxis
                   unit="W"
-                  tick={{ fontSize: 11, fill: '#4a5578' }}
+                  tick={{ fontSize: 11, fill: '#9ba3be' }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -296,7 +296,7 @@ export default function App() {
                   strokeWidth={2}
                   fill="url(#powerGrad)"
                   dot={false}
-                  activeDot={{ r: 5, fill: '#4caf50', stroke: '#0a0f1c', strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: '#2e9e3f', stroke: '#fff', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -339,16 +339,16 @@ export default function App() {
                           <stop offset="100%" stopColor="#f9a825" stopOpacity={0.3} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 11, fill: '#4a5578' }}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                        tick={{ fontSize: 11, fill: '#9ba3be' }}
+                        axisLine={{ stroke: 'rgba(0,0,0,0.08)' }}
                         tickLine={false}
                       />
                       <YAxis
                         unit="W"
-                        tick={{ fontSize: 11, fill: '#4a5578' }}
+                        tick={{ fontSize: 11, fill: '#9ba3be' }}
                         axisLine={false}
                         tickLine={false}
                       />
