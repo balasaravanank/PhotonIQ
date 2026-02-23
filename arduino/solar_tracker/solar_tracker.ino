@@ -1,184 +1,112 @@
 /*
  * ============================================================
  *  SOLAR POWER OPTIMIZATION SYSTEM
- *  Arduino / ESP32 Main Code
+ *  2 LDR + 1 Servo — Simple & Clean
  * ============================================================
- *  CONNECTION: Arduino → PC via USB cable ONLY
- *  No WiFi, no ESP32, no extra modules needed!
- *  Data flows: Arduino → USB Serial → Node.js → Firebase → React
+ *  WIRING:
+ *   Left  LDR → A0  (with 10kΩ voltage divider)
+ *   Right LDR → A1  (with 10kΩ voltage divider)
+ *   Servo     → Pin 9
+ *   Dust LDR  → A5  (optional)
+ *   Arduino   → PC via USB
  *
- *  WIRING GUIDE:
- *  ┌─────────────────────────────────────────────┐
- *  │  LDR Sensors (with 10kΩ voltage divider)    │
- *  │   Top-Left  LDR  → A0                       │
- *  │   Top-Right LDR  → A1                       │
- *  │   Bot-Left  LDR  → A2                       │
- *  │   Bot-Right LDR  → A3                       │
- *  │                                             │
- *  │  Servo Motors                               │
- *  │   Horizontal Servo → Pin 9                  │
- *  │   Vertical   Servo → Pin 10                 │
- *  │                                             │
- *  │  Dust/Dirt LDR Sensor                       │
- *  │   Signal → A5 (or change DUST_PIN below)    │
- *  │                                             │
- *  │  Arduino → PC via USB cable (that's it!)    │
- *  └─────────────────────────────────────────────┘
- *
- *  LIBRARIES NEEDED (install via Arduino Library Manager):
- *   - Servo            (built-in)
- *
- *  NOTE: INA219 has been removed per user request. 
- *  Power/Voltage/Current will be mathematically simulated 
- *  based on the light intensity reading!
+ *  LOGIC: Sun/torch moves → LDR difference changes → 
+ *         servo turns panel to face the light
  * ============================================================
  */
 
 #include <Servo.h>
 
-// ── Pin Definitions ──────────────────────────────────────────
-#define LDR_TOP_LEFT   A0
-#define LDR_TOP_RIGHT  A1
-#define LDR_BOT_LEFT   A2
-#define LDR_BOT_RIGHT  A3
-#define DUST_PIN       A5   // Separate LDR on panel surface
+Servo myServo;
 
-#define SERVO_H_PIN    9    // Horizontal axis servo
-#define SERVO_V_PIN    10   // Vertical axis servo
+// ── Pins ─────────────────────────────────────────────────────
+int ldrLeft  = A0;
+int ldrRight = A1;
+int dustPin  = A5;
 
-// ── Tracking Settings ─────────────────────────────────────────
-#define TOLERANCE      30   // Dead-band: ignore error smaller than this
-#define SERVO_STEP     1    // Degrees to move per adjustment
-#define SERVO_H_MIN    0
-#define SERVO_H_MAX    180
-#define SERVO_V_MIN    60   // Conservative — panel stays safely upright
-#define SERVO_V_MAX    120
+// ── Servo position ───────────────────────────────────────────
+int pos = 90;  // Start at center
+
+// ── Settings you can tune ─────────────────────────────────────
+int threshold = 50;       // Minimum difference to start moving
+int dustThreshold = 200;  // Below this = dirty panel
 
 // ── Timing ───────────────────────────────────────────────────
-#define TRACK_INTERVAL    500    // ms between tracking checks
-#define REPORT_INTERVAL   2000   // ms between serial data reports
-#define DUST_THRESHOLD    200    // LDR value below this = dirty panel
+unsigned long lastReport = 0;
 
-// ── Objects ───────────────────────────────────────────────────
-Servo servoH;
-Servo servoV;
-
-// ── State ─────────────────────────────────────────────────────
-int angleH = 90;   // Current horizontal angle
-int angleV = 90;   // Current vertical angle
-
-unsigned long lastTrackTime  = 0;
-unsigned long lastReportTime = 0;
-
-// ─────────────────────────────────────────────────────────────
 void setup() {
+  myServo.attach(9);
+  myServo.write(pos);
   Serial.begin(9600);
-  while (!Serial) delay(10);
-
-  // Attach servos
-  servoH.attach(SERVO_H_PIN);
-  servoV.attach(SERVO_V_PIN);
-
-  // Start at center
-  servoH.write(angleH);
-  servoV.write(angleV);
-
-  delay(1000);
-  Serial.println("{\"status\":\"Solar Tracker Ready. INA219 simulated mode.\"}");
+  delay(500);
+  Serial.println("{\"status\":\"Solar Tracker Ready\"}");
 }
 
-// ─────────────────────────────────────────────────────────────
 void loop() {
-  unsigned long now = millis();
 
-  // 1. Track the sun
-  if (now - lastTrackTime >= TRACK_INTERVAL) {
-    lastTrackTime = now;
-    trackSun();
+  // ── 1. READ SENSORS ────────────────────────────────────────
+  int leftValue  = analogRead(ldrLeft);
+  int rightValue = analogRead(ldrRight);
+
+  // ── 2. CALCULATE DIFFERENCE ────────────────────────────────
+  int diff = leftValue - rightValue;
+
+  // ── 3. MOVE PANEL TOWARD THE LIGHT ─────────────────────────
+  //
+  //   Light on LEFT  → leftValue is HIGHER → diff > 0  → turn LEFT  (pos--)
+  //   Light on RIGHT → rightValue is HIGHER → diff < 0 → turn RIGHT (pos++)
+  //   Light CENTERED → diff is small        → hold still
+  //
+  //   ☀️ If panel moves WRONG direction, just swap the + and -
+  //
+
+  if (diff > threshold) {
+    // More light on LEFT side → turn panel LEFT
+    pos = pos - 1;
+  }
+  else if (diff < -threshold) {
+    // More light on RIGHT side → turn panel RIGHT
+    pos = pos + 1;
   }
 
-  // 2. Report data over serial
-  if (now - lastReportTime >= REPORT_INTERVAL) {
-    lastReportTime = now;
-    reportData();
+  pos = constrain(pos, 0, 180);
+  myServo.write(pos);
+
+  // ── 4. REPORT JSON TO DASHBOARD (every 2 seconds) ─────────
+  if (millis() - lastReport >= 2000) {
+    lastReport = millis();
+
+    int lightPct = map((leftValue + rightValue) / 2, 0, 1023, 0, 100);
+
+    // Simulate power based on light
+    float voltage = 0.0;
+    float current = 0.0;
+    if (lightPct > 10) {
+      voltage = 4.0 + (lightPct / 100.0) * 2.0;
+      current = (lightPct / 100.0) * 1500.0 + random(-20, 20);
+    }
+    float power = (voltage * current) / 1000.0;
+    if (power < 0) power = 0;
+
+    int dustVal = analogRead(dustPin);
+    bool dustAlert = (dustVal < dustThreshold);
+
+    // JSON output for Node.js → Firebase → Dashboard
+    Serial.print("{");
+    Serial.print("\"voltage\":");    Serial.print(voltage, 2);
+    Serial.print(",\"current\":");   Serial.print(current, 2);
+    Serial.print(",\"power\":");     Serial.print(power, 3);
+    Serial.print(",\"angleH\":");    Serial.print(pos);
+    Serial.print(",\"angleV\":");    Serial.print(90);
+    Serial.print(",\"light\":");     Serial.print(lightPct);
+    Serial.print(",\"dustAlert\":"); Serial.print(dustAlert ? "true" : "false");
+    Serial.print(",\"dustRaw\":");   Serial.print(dustVal);
+    Serial.print(",\"ldrLeft\":");   Serial.print(leftValue);
+    Serial.print(",\"ldrRight\":");  Serial.print(rightValue);
+    Serial.print(",\"diff\":");      Serial.print(diff);
+    Serial.println("}");
   }
-}
 
-// ─────────────────────────────────────────────────────────────
-// SOLAR TRACKING LOGIC
-// ─────────────────────────────────────────────────────────────
-void trackSun() {
-  int tl = analogRead(LDR_TOP_LEFT);
-  int tr = analogRead(LDR_TOP_RIGHT);
-  int bl = analogRead(LDR_BOT_LEFT);
-  int br = analogRead(LDR_BOT_RIGHT);
-
-  // Average top vs bottom → vertical error
-  int top = (tl + tr) / 2;
-  int bot = (bl + br) / 2;
-  int vertError = top - bot;
-
-  // Average left vs right → horizontal error
-  int left  = (tl + bl) / 2;
-  int right = (tr + br) / 2;
-  int horizError = left - right;
-
-  // Adjust vertical servo
-  if (abs(vertError) > TOLERANCE) {
-    if (vertError > 0) angleV = constrain(angleV + SERVO_STEP, SERVO_V_MIN, SERVO_V_MAX);
-    else               angleV = constrain(angleV - SERVO_STEP, SERVO_V_MIN, SERVO_V_MAX);
-    servoV.write(angleV);
-  }
-
-  // Adjust horizontal servo
-  if (abs(horizError) > TOLERANCE) {
-    if (horizError > 0) angleH = constrain(angleH + SERVO_STEP, SERVO_H_MIN, SERVO_H_MAX);
-    else                angleH = constrain(angleH - SERVO_STEP, SERVO_H_MIN, SERVO_H_MAX);
-    servoH.write(angleH);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// REPORT DATA AS JSON OVER SERIAL
-// ─────────────────────────────────────────────────────────────
-void reportData() {
-  // Read LDRs for light intensity (average of 4)
-  int ldrAvg = (analogRead(LDR_TOP_LEFT) + analogRead(LDR_TOP_RIGHT) +
-                analogRead(LDR_BOT_LEFT) + analogRead(LDR_BOT_RIGHT)) / 4;
-  int lightPct = map(ldrAvg, 0, 1023, 0, 100);
-
-  // ── SIMULATE INA219 DATA ──
-  // Based on light percentage, we simulate realistic Voltage, Current, and Power
-  float busVoltage = 0.0;
-  float current_mA = 0.0;
-  
-  if (lightPct > 10) {
-    // Simulate a 6V panel that outputs up to 1500mA
-    busVoltage = 4.0 + (lightPct / 100.0) * 2.0; // Between 4.0V and 6.0V
-    current_mA = (lightPct / 100.0) * 1500.0 + random(-20, 20); // Scale up to 1500mA with noise
-  }
-  
-  // Power = V * I
-  float power_W = (busVoltage * current_mA) / 1000.0;
-
-  // Read dust sensor
-  int dustVal = analogRead(DUST_PIN);
-  bool dustAlert = (dustVal < DUST_THRESHOLD);
-
-  // Clamp negatives (sensor noise)
-  if (current_mA < 0) current_mA = 0;
-  if (power_W    < 0) power_W    = 0;
-  if (busVoltage < 0) busVoltage = 0;
-
-  // Send JSON over Serial
-  Serial.print("{");
-  Serial.print("\"voltage\":");    Serial.print(busVoltage, 2);
-  Serial.print(",\"current\":");   Serial.print(current_mA, 2);
-  Serial.print(",\"power\":");     Serial.print(power_W, 3);
-  Serial.print(",\"angleH\":");    Serial.print(angleH);
-  Serial.print(",\"angleV\":");    Serial.print(angleV);
-  Serial.print(",\"light\":");     Serial.print(lightPct);
-  Serial.print(",\"dustAlert\":"); Serial.print(dustAlert ? "true" : "false");
-  Serial.print(",\"dustRaw\":");   Serial.print(dustVal);
-  Serial.println("}");
+  // ── 5. SMALL DELAY ────────────────────────────────────────
+  delay(30);
 }

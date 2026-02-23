@@ -1,38 +1,29 @@
-// src/App.js
+// src/App.jsx
 // ============================================================
-//  SOLAR OPTIMIZER - Main Dashboard
-//  Features:
-//   - Live power, voltage, current cards
-//   - Panel angle display
-//   - Historical power chart (last 50 readings)
-//   - AI prediction forecast chart
-//   - Weather widget
-//   - Dust alert banner
-//   - Auto-refreshes every 2 seconds via Firebase
+//  PHOTONIQ — Solar Power Dashboard (Dark Glassmorphism UI)
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db, ref, onValue } from './firebase';
 import {
-  LineChart, Line, BarChart, Bar,
+  LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine
+  ResponsiveContainer
 } from 'recharts';
 import {
   Sun, Zap, Thermometer, Wind,
   AlertTriangle, CheckCircle, Activity,
-  TrendingUp, Droplets, Cloud
+  TrendingUp, Droplets, Cloud, Radio
 } from 'lucide-react';
 import './App.css';
 
 // ─────────────────────────────────────────────────────────────
-// HELPER COMPONENTS
+// STAT CARD
 // ─────────────────────────────────────────────────────────────
-
-function StatCard({ icon, label, value, unit, color, sub }) {
+function StatCard({ icon, label, value, unit, colorName, sub }) {
   return (
-    <div className="stat-card" style={{ borderTop: `4px solid ${color}` }}>
-      <div className="stat-icon" style={{ color }}>{icon}</div>
+    <div className="stat-card" data-color={colorName}>
+      <div className="stat-icon" data-color={colorName}>{icon}</div>
       <div className="stat-body">
         <div className="stat-label">{label}</div>
         <div className="stat-value">
@@ -44,6 +35,9 @@ function StatCard({ icon, label, value, unit, color, sub }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// ANGLE GAUGE
+// ─────────────────────────────────────────────────────────────
 function AngleGauge({ label, angle, min, max }) {
   const pct = ((angle - min) / (max - min)) * 100;
   return (
@@ -53,11 +47,17 @@ function AngleGauge({ label, angle, min, max }) {
       <div className="angle-bar-bg">
         <div className="angle-bar-fill" style={{ width: `${pct}%` }} />
       </div>
-      <div className="angle-range">{min}° — {max}°</div>
+      <div className="angle-range">
+        <span>{min}°</span>
+        <span>{max}°</span>
+      </div>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// DUST ALERT
+// ─────────────────────────────────────────────────────────────
 function DustAlert({ dustAlert, dustRaw }) {
   if (!dustAlert) return null;
   return (
@@ -65,8 +65,31 @@ function DustAlert({ dustAlert, dustRaw }) {
       <AlertTriangle size={20} />
       <span>
         <strong>Panel Cleaning Required!</strong> Dust detected (sensor: {dustRaw}).
-        Estimated efficiency loss: ~15-25%. Please clean the panel surface.
+        Estimated efficiency loss: ~15-25%.
       </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CUSTOM TOOLTIP FOR CHARTS
+// ─────────────────────────────────────────────────────────────
+function CustomTooltip({ active, payload, label, unit = 'W', dataLabel = 'Power' }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div style={{
+      background: 'rgba(15, 22, 41, 0.95)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 10,
+      padding: '10px 14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      fontSize: 13,
+    }}>
+      <div style={{ color: '#8892b0', fontSize: 11, marginBottom: 4 }}>{label}</div>
+      <div style={{ color: '#f0f2f8', fontWeight: 700 }}>
+        {payload[0].value} {unit}
+        <span style={{ color: '#8892b0', fontWeight: 400, marginLeft: 6 }}>{dataLabel}</span>
+      </div>
     </div>
   );
 }
@@ -74,16 +97,15 @@ function DustAlert({ dustAlert, dustRaw }) {
 // ─────────────────────────────────────────────────────────────
 // MAIN APP
 // ─────────────────────────────────────────────────────────────
-
 export default function App() {
-  const [live, setLive]           = useState(null);
-  const [history, setHistory]     = useState([]);
-  const [weather, setWeather]     = useState(null);
+  const [live, setLive] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [weather, setWeather] = useState(null);
   const [prediction, setPrediction] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
 
-  // ── Subscribe to Firebase live data ───────────────────────
+  // ── Firebase subscriptions ──────────────────────────
   useEffect(() => {
     const liveRef = ref(db, 'solarData/live');
     const unsub = onValue(liveRef, (snapshot) => {
@@ -97,7 +119,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // ── Subscribe to Firebase history ─────────────────────────
   useEffect(() => {
     const histRef = ref(db, 'solarData/history');
     const unsub = onValue(histRef, (snapshot) => {
@@ -105,7 +126,7 @@ export default function App() {
       if (raw) {
         const arr = Object.values(raw)
           .sort((a, b) => a.timestamp - b.timestamp)
-          .slice(-50)  // last 50 readings
+          .slice(-50)
           .map(d => ({
             ...d,
             time: new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -117,7 +138,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // ── Subscribe to weather ───────────────────────────────────
   useEffect(() => {
     const wRef = ref(db, 'solarData/weather');
     const unsub = onValue(wRef, (snapshot) => {
@@ -126,7 +146,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // ── Subscribe to prediction ────────────────────────────────
   useEffect(() => {
     const pRef = ref(db, 'solarData/prediction');
     const unsub = onValue(pRef, (snapshot) => {
@@ -135,17 +154,17 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // ── Efficiency gain calculation ────────────────────────────
-  // Tracking adds ~34% over fixed panel (simplified)
   const efficiencyGain = live ? 34 : 0;
 
-  // ── Loading state ──────────────────────────────────────────
+  // ── Loading State ───────────────────────────────────
   if (!live) {
     return (
       <div className="loading">
-        <Sun size={48} className="spin" />
+        <div className="loading-icon">
+          <Sun size={32} color="#fff" />
+        </div>
         <p>Connecting to Solar Tracker...</p>
-        <small>Make sure the backend server is running on port 3001</small>
+        <small>Backend server must be running on port 3001</small>
       </div>
     );
   }
@@ -155,13 +174,17 @@ export default function App() {
       {/* ── Header ── */}
       <header className="header">
         <div className="header-left">
-          <Sun size={28} color="#F9A825" />
-          <h1>Solar Power Optimizer</h1>
+          <div className="header-logo">
+            <Sun size={20} color="#fff" />
+          </div>
+          <h1>Photon<span>IQ</span></h1>
         </div>
         <div className="header-right">
-          <div className={`status-dot ${connected ? 'online' : 'offline'}`} />
-          <span>{connected ? 'Live' : 'Disconnected'}</span>
-          {lastUpdate && <span className="last-update">Updated: {lastUpdate}</span>}
+          <div className="status-badge">
+            <div className={`status-dot ${connected ? 'online' : 'offline'}`} />
+            <span>{connected ? 'Live' : 'Offline'}</span>
+          </div>
+          {lastUpdate && <span className="last-update">{lastUpdate}</span>}
         </div>
       </header>
 
@@ -173,72 +196,109 @@ export default function App() {
         {/* ── Stat Cards ── */}
         <div className="stats-grid">
           <StatCard
-            icon={<Zap size={28} />}
+            icon={<Zap size={22} />}
             label="Power Output"
             value={live.power?.toFixed(3)}
             unit="W"
-            color="#43A047"
+            colorName="green"
             sub="Real-time"
           />
           <StatCard
-            icon={<Activity size={28} />}
+            icon={<Activity size={22} />}
             label="Voltage"
             value={live.voltage?.toFixed(2)}
             unit="V"
-            color="#1565C0"
+            colorName="blue"
             sub="Bus voltage"
           />
           <StatCard
-            icon={<Zap size={28} />}
+            icon={<Zap size={22} />}
             label="Current"
             value={live.current?.toFixed(1)}
             unit="mA"
-            color="#6A1B9A"
+            colorName="purple"
             sub="Draw"
           />
           <StatCard
-            icon={<TrendingUp size={28} />}
-            label="Efficiency Gain"
+            icon={<TrendingUp size={22} />}
+            label="Efficiency"
             value={`+${efficiencyGain}`}
             unit="%"
-            color="#F9A825"
+            colorName="amber"
             sub="vs fixed panel"
           />
           <StatCard
-            icon={<Sun size={28} />}
-            label="Light Intensity"
+            icon={<Sun size={22} />}
+            label="Light"
             value={live.light}
             unit="%"
-            color="#FB8C00"
-            sub="Solar irradiance"
+            colorName="orange"
+            sub="Irradiance"
           />
         </div>
 
         {/* ── Panel Angles ── */}
         <div className="section">
-          <h2>Panel Orientation</h2>
+          <div className="section-header">
+            <div className="section-header-icon" style={{ background: 'rgba(76,175,80,0.12)', color: 'var(--accent-green)' }}>
+              <Radio size={16} />
+            </div>
+            <h2>
+              Panel Orientation
+              <span className="section-subtitle">Active axis tracking</span>
+            </h2>
+          </div>
           <div className="angle-grid">
-            <AngleGauge label="Horizontal Axis" angle={live.angleH} min={0}  max={180} />
-            <AngleGauge label="Vertical Axis"   angle={live.angleV} min={30} max={150} />
+            <AngleGauge label="Horizontal Axis" angle={live.angleH} min={0} max={180} />
+            <AngleGauge label="Vertical Axis" angle={live.angleV} min={30} max={150} />
           </div>
         </div>
 
-        {/* ── Power History Chart ── */}
+        {/* ── Power History ── */}
         <div className="section">
-          <h2>Power Output — Last 50 Readings</h2>
+          <div className="section-header">
+            <div className="section-header-icon" style={{ background: 'rgba(76,175,80,0.12)', color: 'var(--accent-green)' }}>
+              <Activity size={16} />
+            </div>
+            <h2>
+              Power Output
+              <span className="section-subtitle">Last 50 readings</span>
+            </h2>
+          </div>
           <div className="chart-wrap">
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis dataKey="time" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis unit="W" tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => [`${v} W`, 'Power']} />
-                <Line
-                  type="monotone" dataKey="power"
-                  stroke="#43A047" strokeWidth={2}
-                  dot={false} activeDot={{ r: 5 }}
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={history}>
+                <defs>
+                  <linearGradient id="powerGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4caf50" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#4caf50" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 11, fill: '#4a5578' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                  tickLine={false}
+                  interval="preserveStartEnd"
                 />
-              </LineChart>
+                <YAxis
+                  unit="W"
+                  tick={{ fontSize: 11, fill: '#4a5578' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<CustomTooltip unit="W" dataLabel="Power" />} />
+                <Area
+                  type="monotone"
+                  dataKey="power"
+                  stroke="#4caf50"
+                  strokeWidth={2}
+                  fill="url(#powerGrad)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: '#4caf50', stroke: '#0a0f1c', strokeWidth: 2 }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -248,22 +308,56 @@ export default function App() {
 
           {/* AI Forecast */}
           <div className="section">
-            <h2>🤖 AI Power Forecast — Next 6 Hours</h2>
+            <div className="section-header">
+              <div className="section-header-icon" style={{ background: 'rgba(249,168,37,0.12)', color: 'var(--accent-amber)' }}>
+                🤖
+              </div>
+              <h2>
+                AI Power Forecast
+                <span className="section-subtitle">Next 6 hours prediction</span>
+              </h2>
+            </div>
             {prediction ? (
               <>
                 <div className="prediction-meta">
-                  <span>Next hour: <strong>{prediction.predicted_power} W</strong></span>
-                  <span>Confidence: <strong>{prediction.confidence}%</strong></span>
-                  <span>Peak hour: <strong>{prediction.peak_hour}:00</strong></span>
+                  <div className="prediction-chip">
+                    Next hour: <strong>{prediction.predicted_power} W</strong>
+                  </div>
+                  <div className="prediction-chip">
+                    Confidence: <strong>{prediction.confidence}%</strong>
+                  </div>
+                  <div className="prediction-chip">
+                    Peak: <strong>{prediction.peak_hour}:00</strong>
+                  </div>
                 </div>
                 <div className="chart-wrap">
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={prediction.forecast}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                      <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                      <YAxis unit="W" tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(v) => [`${v} W`, 'Predicted']} />
-                      <Bar dataKey="predicted" fill="#F9A825" radius={[4, 4, 0, 0]} />
+                      <defs>
+                        <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#f9a825" stopOpacity={0.9} />
+                          <stop offset="100%" stopColor="#f9a825" stopOpacity={0.3} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11, fill: '#4a5578' }}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        unit="W"
+                        tick={{ fontSize: 11, fill: '#4a5578' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip unit="W" dataLabel="Predicted" />} />
+                      <Bar
+                        dataKey="predicted"
+                        fill="url(#barGrad)"
+                        radius={[6, 6, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -273,40 +367,46 @@ export default function App() {
             )}
           </div>
 
-          {/* Weather Widget */}
-          <div className="section weather-card">
-            <h2>🌤 Weather Conditions</h2>
+          {/* Weather */}
+          <div className="section">
+            <div className="section-header">
+              <div className="section-header-icon" style={{ background: 'rgba(66,165,245,0.12)', color: 'var(--accent-blue)' }}>
+                <Cloud size={16} />
+              </div>
+              <h2>
+                Weather
+                <span className="section-subtitle">Current conditions</span>
+              </h2>
+            </div>
             {weather ? (
               <div className="weather-grid">
                 <div className="weather-item">
-                  <Thermometer size={22} color="#E53935" />
+                  <Thermometer size={20} color="#ef5350" />
                   <span className="w-label">Temperature</span>
                   <span className="w-val">{weather.temp}°C</span>
                 </div>
                 <div className="weather-item">
-                  <Droplets size={22} color="#1565C0" />
+                  <Droplets size={20} color="#42a5f5" />
                   <span className="w-label">Humidity</span>
                   <span className="w-val">{weather.humidity}%</span>
                 </div>
                 <div className="weather-item">
-                  <Cloud size={22} color="#607D8B" />
-                  <span className="w-label">Cloud Cover</span>
+                  <Cloud size={20} color="#78909c" />
+                  <span className="w-label">Clouds</span>
                   <span className="w-val">{weather.clouds}%</span>
                 </div>
                 <div className="weather-item">
-                  <Wind size={22} color="#00897B" />
-                  <span className="w-label">Wind Speed</span>
+                  <Wind size={20} color="#26c6da" />
+                  <span className="w-label">Wind</span>
                   <span className="w-val">{weather.windSpeed} m/s</span>
                 </div>
-                <div className="weather-desc">
-                  {weather.description}
-                </div>
+                <div className="weather-desc">{weather.description}</div>
                 <div className="solar-impact">
-                  <CheckCircle size={16} color="#43A047" />
+                  <CheckCircle size={16} color="#4caf50" />
                   Solar impact: <strong>
                     {weather.clouds < 20 ? 'Excellent ☀️' :
-                     weather.clouds < 50 ? 'Good 🌤' :
-                     weather.clouds < 80 ? 'Moderate ⛅' : 'Poor ☁️'}
+                      weather.clouds < 50 ? 'Good 🌤' :
+                        weather.clouds < 80 ? 'Moderate ⛅' : 'Poor ☁️'}
                   </strong>
                 </div>
               </div>
@@ -319,7 +419,7 @@ export default function App() {
       </div>
 
       <footer className="footer">
-        Solar Power Optimization System • Hackathon 2026 • Real-time data via Firebase
+        <span>PhotonIQ</span> — Solar Power Optimization • Hackathon 2026
       </footer>
     </div>
   );
