@@ -1,4 +1,4 @@
-# PhotonIQ — Smart Solar Power Optimization System
+# PhotonIQ - Smart Solar Power Optimization System
 
 > An IoT-powered solar tracking system that maximizes energy output using real-time light sensing, servo-driven panel alignment, and a live analytics dashboard.
 
